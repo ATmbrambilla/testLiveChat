@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+
+
+<head>
+  <meta charset="utf-8" />  <!-- // AT:06/02/2024: Evaluate if this is actually set in the header -->
+</head>
+
+    
+<body>
+<style type='text/css'>
+	.embeddedServiceHelpButton .helpButton .uiButton {
+		background-color: #005290;
+		font-family: "Arial", sans-serif;
+	}
+	.embeddedServiceHelpButton .helpButton .uiButton:focus {
+		outline: 1px solid #005290;
+	}
+</style>
+
+<script type='text/javascript' src='https://service.force.com/embeddedservice/5.0/esw.min.js'></script>
+<script type='text/javascript'>
+	var initESW = function(gslbBaseURL) {
+		embedded_svc.settings.displayHelpButton = true; //Or false
+		embedded_svc.settings.language = 'it'; //For example, enter 'en' or 'en-US'
+
+		embedded_svc.settings.defaultMinimizedText = 'Chat'; //(Defaults to Chat with an Expert)
+		embedded_svc.settings.disabledMinimizedText = 'Offline'; //(Defaults to Agent Offline)
+
+		embedded_svc.settings.loadingText = 'Caricamento'; //(Defaults to Loading)
+		//embedded_svc.settings.storageDomain = 'yourdomain.com'; //(Sets the domain for your deployment so that visitors can navigate subdomains during a chat session)
+
+		// Settings for Chat
+		//embedded_svc.settings.directToButtonRouting = function(prechatFormData) {
+			// Dynamically changes the button ID based on what the visitor enters in the pre-chat form.
+			// Returns a valid button ID.
+		//};
+		//embedded_svc.settings.prepopulatedPrechatFields = {}; //Sets the auto-population of pre-chat form fields
+		//embedded_svc.settings.fallbackRouting = []; //An array of button IDs, user IDs, or userId_buttonId
+		//embedded_svc.settings.offlineSupportMinimizedText = '...'; //(Defaults to Contact Us)
+
+		embedded_svc.settings.enabledFeatures = ['LiveAgent'];
+		embedded_svc.settings.entryFeature = 'LiveAgent';
+
+        embedded_svc.snippetSettingsFile.extraPrechatFormDetails = [
+			{
+				"label": "Nome",
+				"transcriptFields": ["FirstName__c"],
+				"displayToAgent":true
+			},
+			{
+				"label": "Cognome",
+				"transcriptFields": ["LastName__c"],
+				"displayToAgent":true
+			},
+			{
+				"label": "Email",
+				"transcriptFields": ["Email__c"],
+				"displayToAgent":true
+			}
+		];
+		
+		
+
+        embedded_svc.addEventHandler("onChatRequestSuccess", function(data) {
+        console.log("onChatRequestSuccess event was fired. liveAgentSessionKey was " +
+        data.liveAgentSessionKey);
+             waitForLoad();  // AT:06/02/2024: Load the fixer 
+        });
+
+
+        embedded_svc.addEventHandler("onHelpButtonClick", function(data) {
+        console.log("onHelpButtonClick event was fired.");
+            waitForLoad();   // AT:06/02/2024: Load the fixer 
+        });
+
+        embedded_svc.addEventHandler("onChatConferenceInitiated", function(data) {
+        console.log("onChatConferenceInitiated event was fired. liveAgentSessionKey was " +
+        data.liveAgentSessionKey);
+            waitForLoad();    // AT:06/02/2024: Load the fixer 
+        });
+
+        embedded_svc.addEventHandler("onAvailability", function(data) {
+        console.log("onAvailability event was fired. Agent availability status is " +
+        data.isAgentAvailable ? "online": "offline");
+
+        if (data.isAgentAvailable =="offline" ) {
+            stopMonitor();  // AT:06/02/2024: Fix
+        }
+       
+        });
+
+		embedded_svc.init(
+			'https://kasanova.my.salesforce.com',
+			'https://kasanova.my.site.com/HelpCenter',
+			gslbBaseURL,
+			'00D1t000000qs4B',
+			'Chat_Agents',
+			{
+				baseLiveAgentContentURL: 'https://c.la1-core1.sfdc-3d0u2f.salesforceliveagent.com/content',
+				deploymentId: '5727Q000000YuOa',
+				buttonId: '5737Q000000YvFA',
+				baseLiveAgentURL: 'https://d.la1-core1.sfdc-3d0u2f.salesforceliveagent.com/chat',
+				eswLiveAgentDevName: 'EmbeddedServiceLiveAgent_Parent04I7Q000000PYF6UAO_18acb755200',
+				isOfflineSupportEnabled: false
+			}
+		);
+	};
+
+	if (!window.embedded_svc) {
+		var s = document.createElement('script');
+		s.setAttribute('src', 'https://kasanova.my.salesforce.com/embeddedservice/5.0/esw.min.js');
+		s.onload = function() {
+			initESW(null);
+		};
+		document.body.appendChild(s);
+	} else {
+		initESW('https://service.force.com');
+	}
+</script>
+
+ 
+
+<script type='text/javascript'>
+
+  // ------------------------------------------------------------------------------------
+  // Feb 06th 2024, 
+  // Issue of the Salesforce Live chat embedded in Magento eCommerce.
+  // Some special chars are replaced with html escape. Examble: ' become &apos;  
+  // ------------------------------------------------------------------------------------
+  // May code purists forgive me for thinking and writing such of this terrible code  !!
+  // ------------------------------------------------------------------------------------
+  let intervalId;
+
+  function parseAndFixLabels() {   // this is the absurd fixer !
+    let liclassName = "uiOutputRichText";
+    let numb = document.getElementsByClassName(liclassName).length;  // uiOutputRichText is the chat item container class 
+    // console.log ( ' document.getElementsByClassName(liclassName).length:  '+ numb );
+                                                     
+    const collection = document.getElementsByClassName(liclassName);
+        for (let i = 0; i < collection.length; i++) {
+        // console.log (  collection[i].innerText);
+        // get full list here: https://www.w3schools.com/html/html_entities.asp
+        let label  =   collection[i].innerText;
+        label = label.replace("&lt;","<");
+        label = label.replace("&gt;",">");
+        label = label.replace("&#x60;","`");        
+        label = label.replace("&amp;","&");
+        label = label.replace("&apos;","'");
+        label = label.replace("&#x27;","'");
+        label = label.replace("&quot;","\"");
+        label = label.replace("&euro;","€");
+        label = label.replace("!!!","---");     // test
+        // replace fixed label
+        collection[i].innerText = label;    // and update live the value.
+        }
+
+  }
+  
+  // wait for the page to be loaded
+  function waitForLoad() {
+       intervalId = window.setInterval(monitorChanges, 1000); // wait for init
+ }
+
+  // chat ended, stop the monitor.
+  function stopMonitor() {
+       window.clearInterval(intervalId);
+  }
+
+  // hot fix: loop for the li elements to look for invalid parsing.
+  function monitorChanges() {
+        let liclassName = "messageArea smoothScroll";
+        let numb = document.getElementsByClassName(liclassName).length;
+        // console.log ( ' document.getElementsByClassName(liclassName).length:  '+ numb );
+        console.log ( '.');
+        if (numb == 1 ){ 
+            const selectElement = document.getElementsByClassName(liclassName);
+
+            window.setInterval(parseAndFixLabels, 500);
+            // console.log ( ' Initialized '); 
+        }
+       
+      }
+     waitForLoad();  // if the user manually refresh the page, the loader restore the Fixer
+
+// ------------------------------------------------------------------------------------
+</script>
+</body>
+</html>
